@@ -23,7 +23,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Validation.** A global `ValidationPipe({ whitelist: true, transform: true })` is registered in `src/main.ts`, so every DTO's `class-validator` decorators are enforced automatically on incoming requests.
 
-**Cross-module dependency example.** `OrdersModule` imports `UsersModule` and injects `UsersService` into `OrdersService` to verify `Order.userId` references an existing user before create/update (`src/orders/orders.service.ts`). `UsersModule` exports `UsersService` specifically to support this. This is the pattern to follow when one resource needs to validate against another.
+**Cross-module dependency example.** `OrdersModule` imports `UsersModule` and injects `UsersService` into `OrdersService` to verify `Order.userId` references an existing user before create/update (`src/orders/orders.service.ts`). `UsersModule` exports `UsersService` specifically to support this. This is the pattern to follow when one resource needs to validate against another; `OrderItemsModule` repeats it with `OrdersModule`/`OrdersService`.
+
+**Derived totals.** `Order.totalPrice` is not set directly by clients in normal use — it's kept in sync by `OrderItemsService` (`src/order-items/order-items.service.ts`), which recalculates `sum(quantity * price)` across all `OrderItem`s for an order and writes it via `OrdersService.update()` after every order-item create/update/delete (including recalculating the *previous* order's total if an item's `orderId` is changed on update).
 
 **Password handling.** `User.password` is declared `select: false` on the schema so it's excluded from normal query results, and is hashed via Mongoose `pre('save')` / `pre('findOneAndUpdate')` hooks in `src/users/schemas/user.schema.ts`. `UsersService.create()` additionally strips `password` from its return value manually, since `.create()` bypasses field selection and would otherwise leak the hash.
 
